@@ -2,7 +2,7 @@ name: model-training
 
 on:
   pull_request:
-    branches: [ "main" ] # Ajout des crochets pour la bonne syntaxe YAML
+    branches: [ "main" ]
 
 permissions: write-all
 
@@ -11,17 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: '3.9'
 
       # Setup CML GitHub Action
       - name: Setup CML
-        uses: iterative/setup-cml@v1 # <-- Rempli : Action officielle pour installer CML
+        uses: iterative/setup-cml@v3
           
+      - name: Install dependencies
+        run: |
+          pip install pandas scikit-learn
+
       - name: Train model
         run: |
           python3 preprocess_dataset.py
@@ -31,11 +35,18 @@ jobs:
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Add metrics data to markdown
-          cat metrics.json >> model_eval_report.md # <-- Rempli : Fichier contenant vos métriques
+          # Création du titre du rapport
+          echo "## 📊 Rapport d'Évaluation du Modèle" > model_eval_report.md
           
-          # Add confusion matrix plot to markdown
-          echo "![confusion matrix plot](./confusion_matrix.png)" >> model_eval_report.md # <-- Rempli : Nom de votre graphique
+          # Ajout des métriques au format code JSON pour une lecture propre
+          echo "### 📈 Métriques" >> model_eval_report.md
+          echo "\`\`\`json" >> model_eval_report.md
+          cat metrics.json >> model_eval_report.md
+          echo -e "\n\`\`\`" >> model_eval_report.md
+          
+          # Ajout du graphique de la matrice de confusion
+          echo "### 🔍 Graphiques" >> model_eval_report.md
+          echo "![confusion matrix plot](./confusion_matrix.png)" >> model_eval_report.md
 
-          # Create comment from markdown report
-          cml comment create model_eval_report.md # <-- Rempli : Commande CML pour publier le rapport
+          # Publication du commentaire sur la Pull Request
+          cml comment create model_eval_report.md
