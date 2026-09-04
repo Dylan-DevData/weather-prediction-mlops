@@ -1,0 +1,52 @@
+name: model-training
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions: write-all
+
+jobs:
+  train_and_report_eval_performance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      # Setup CML GitHub Action
+      - name: Setup CML
+        uses: iterative/setup-cml@v3
+          
+      - name: Install dependencies
+        run: |
+          pip install pandas scikit-learn
+
+      - name: Train model
+        run: |
+          python3 preprocess_dataset.py
+          python3 train.py
+
+      - name: Write CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Création du titre du rapport
+          echo "## 📊 Rapport d'Évaluation du Modèle" > model_eval_report.md
+          
+          # Ajout des métriques au format code JSON pour une lecture propre
+          echo "### 📈 Métriques" >> model_eval_report.md
+          echo "\`\`\`json" >> model_eval_report.md
+          cat metrics.json >> model_eval_report.md
+          echo -e "\n\`\`\`" >> model_eval_report.md
+          
+          # Ajout du graphique de la matrice de confusion
+          echo "### 🔍 Graphiques" >> model_eval_report.md
+          echo "![confusion matrix plot](./confusion_matrix.png)" >> model_eval_report.md
+
+          # Publication du commentaire sur la Pull Request
+          cml comment create model_eval_report.md
