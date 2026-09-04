@@ -1,0 +1,56 @@
+name: model-training
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions: write-all
+
+jobs:
+  train_and_report_eval_performance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Correction essentielle : Installation des paquets graphiques système requis par CML
+      - name: Install system dependencies for CML
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev pixman-1
+
+      # Configuration de CML avec autorisation de rétrocompatibilité Node si nécessaire
+      - name: Setup CML
+        uses: iterative/setup-cml@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+      - name: Install Python dependencies
+        run: |
+          pip install pandas scikit-learn
+
+      - name: Train model
+        run: |
+          python3 preprocess_dataset.py
+          python3 train.py
+
+      - name: Write CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## 📊 Rapport d'Évaluation du Modèle" > model_eval_report.md
+          
+          echo "### 📈 Métriques" >> model_eval_report.md
+          echo "\`\`\`json" >> model_eval_report.md
+          cat metrics.json >> model_eval_report.md
+          echo -e "\n\`\`\`" >> model_eval_report.md
+          
+          echo "### 🔍 Graphiques" >> model_eval_report.md
+          echo "![confusion matrix plot](./confusion_matrix.png)" >> model_eval_report.md
+
+          cml comment create model_eval_report.md
