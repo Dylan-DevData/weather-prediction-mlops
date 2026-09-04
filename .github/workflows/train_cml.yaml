@@ -2,7 +2,7 @@ name: model-training
 
 on:
   pull_request:
-    branches: main
+    branches: [ "main" ] # Ajout des crochets pour la bonne syntaxe YAML
 
 permissions: write-all
 
@@ -20,7 +20,7 @@ jobs:
 
       # Setup CML GitHub Action
       - name: Setup CML
-        uses: iterative/____
+        uses: iterative/setup-cml@v1 # <-- Rempli : Action officielle pour installer CML
           
       - name: Train model
         run: |
@@ -32,10 +32,10 @@ jobs:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Add metrics data to markdown
-          cat ____ >> model_eval_report.md
+          cat metrics.json >> model_eval_report.md # <-- Rempli : Fichier contenant vos métriques
           
           # Add confusion matrix plot to markdown
-          echo "![confusion matrix plot](./____)" >> model_eval_report.md
+          echo "![confusion matrix plot](./confusion_matrix.png)" >> model_eval_report.md # <-- Rempli : Nom de votre graphique
 
           # Create comment from markdown report
-          cml comment ____ model_eval_report.md
+          cml comment create model_eval_report.md # <-- Rempli : Commande CML pour publier le rapport
